@@ -1,9 +1,10 @@
 import os
 import time
+import traceback
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.exc import OperationalError
 
 from app.database import engine, Base, SessionLocal
@@ -11,6 +12,15 @@ from app.auth import init_default_user
 from app.routers import auth, servers, updates, terminal
 
 app = FastAPI(title="Server- & Update-Verwaltung", version="1.0.0")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    print(f"[ERROR] Exception on {request.method} {request.url.path}: {exc}")
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Serverfehler: {str(exc)}"}
+    )
 
 # Mount Static & Templates
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -43,4 +53,4 @@ def startup_db():
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html")

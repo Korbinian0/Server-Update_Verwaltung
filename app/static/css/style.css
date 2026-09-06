@@ -72,8 +72,9 @@ body {
 
 .logo-text {
     font-size: 1.25rem;
-    font-weight: 700;
+        font-weight: 700;
     background: var(--grad-purple-orange);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -113,6 +114,7 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+}
 
 /* Auth Section */
 .auth-container {
@@ -132,8 +134,9 @@ body {
 
 .auth-header h2 {
     font-size: 1.8rem;
-    margin-bottom: 0.5rem;
+        margin-bottom: 0.5rem;
     background: var(--grad-orange-purple);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -392,8 +395,9 @@ body {
 }
 
 .modal-header h3 {
-    font-size: 1.4rem;
+        font-size: 1.4rem;
     background: var(--grad-purple-orange);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -461,11 +465,6 @@ body {
     margin: 2rem auto;
     padding: 0 1.5rem;
     width: 100%;
-}
-
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
 }
 
 .btn-secondary:hover {

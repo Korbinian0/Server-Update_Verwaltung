@@ -1,7 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
-from app.models import OSType, AuthType, ServerStatus
 
 # Auth Schemas
 class Token(BaseModel):
@@ -23,17 +22,16 @@ class UserResponse(BaseModel):
     id: int
     username: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Server Schemas
 class ServerCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     hostname: str = Field(..., min_length=1, max_length=255)
     port: int = Field(22, ge=1, le=65535)
-    os_type: OSType
+    os_type: str
     username: str = Field("root", min_length=1)
-    auth_type: AuthType = AuthType.PASSWORD
+    auth_type: str = "password"
     password: Optional[str] = None
     ssh_key: Optional[str] = None
 
@@ -41,9 +39,9 @@ class ServerUpdate(BaseModel):
     name: Optional[str] = None
     hostname: Optional[str] = None
     port: Optional[int] = None
-    os_type: Optional[OSType] = None
+    os_type: Optional[str] = None
     username: Optional[str] = None
-    auth_type: Optional[AuthType] = None
+    auth_type: Optional[str] = None
     password: Optional[str] = None
     ssh_key: Optional[str] = None
 
@@ -52,18 +50,16 @@ class ServerResponse(BaseModel):
     name: str
     hostname: str
     port: int
-    os_type: OSType
+    os_type: str
     username: str
-    auth_type: AuthType
-    status: ServerStatus
+    auth_type: str
+    status: str
     pending_updates_count: int
     pending_updates_list: Optional[str] = None
     last_checked: Optional[datetime] = None
     created_at: datetime
-    # Note: password and ssh_key are omitted for security in general list/views, or masked
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
 # Log Schema
 class LogResponse(BaseModel):
@@ -74,5 +70,4 @@ class LogResponse(BaseModel):
     output: Optional[str]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

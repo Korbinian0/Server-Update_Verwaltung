@@ -44,7 +44,7 @@ async def websocket_terminal(websocket: WebSocket, server_id: int, token: str = 
 
         try:
             ssh_client = SSHManager.get_ssh_client(server, timeout=10)
-            chan = ssh_client.invoke_shell(term='xterm-256color', cols=100, rows=30)
+            chan = ssh_client.invoke_shell(term='xterm-256color', width=100, height=30)
             chan.settimeout(0.1)
         except Exception as e:
             await websocket.send_text(f"\r\n\x1b[31m[Fehler] SSH-Verbindung fehlgeschlagen: {str(e)}\x1b[0m\r\n")

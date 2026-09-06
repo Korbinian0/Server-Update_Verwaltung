@@ -8,13 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initApp();
 });
 
-function initApp() {
-    if (authToken) {
-        showDashboard();
-    } else {
-        showLogin();
-    }
-
+async function initApp() {
     // Event Listeners
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('addServerForm').addEventListener('submit', handleSaveServer);
@@ -31,6 +25,20 @@ function initApp() {
             document.getElementById('keyGroup').classList.remove('hidden');
         }
     });
+
+    if (authToken && authToken !== 'null' && authToken !== 'undefined') {
+        try {
+            const res = await fetch('/api/auth/me', { headers: authHeaders() });
+            if (res.ok) {
+                showDashboard();
+                return;
+            }
+        } catch (e) {
+            console.error('Auth verification failed', e);
+        }
+    }
+
+    logout();
 }
 
 function authHeaders() {
@@ -80,6 +88,14 @@ async function handleLogin(e) {
     } catch (err) {
         errDiv.textContent = err.message;
         errDiv.classList.remove('hidden');
+    }
+}
+
+function logout() {
+    authToken = null;
+    localStorage.removeItem('token');
+    showLogin();
+}
 
 // Server CRUD
 async function loadServers() {
@@ -95,15 +111,18 @@ async function loadServers() {
 }
 
 function updateStats(servers) {
-    document.getElementById('statTotalServers').textContent = servers.length;
+    const total = servers ? servers.length : 0;
     let pendingCount = 0;
     let okCount = 0;
 
-    servers.forEach(s => {
-        if (s.pending_updates_count > 0) pendingCount += s.pending_updates_count;
-        if (s.status === 'ok') okCount++;
-    });
+    if (servers) {
+        servers.forEach(s => {
+            pendingCount += s.pending_updates_count || 0;
+            if (s.status === 'ok') okCount++;
+        });
+    }
 
+    document.getElementById('statTotalServers').textContent = total;
     document.getElementById('statPendingUpdates').textContent = pendingCount;
     document.getElementById('statHealthyServers').textContent = okCount;
 }
@@ -112,9 +131,9 @@ function renderServers(servers) {
     const grid = document.getElementById('serversGrid');
     grid.innerHTML = '';
 
-    if (servers.length === 0) {
+    if (!servers || servers.length === 0) {
         grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
-            Keine Linux Server registriert. Klicken Sie auf "Server hinzufügen", um zu beginnen.
+            Keine Linux Server registriert. Klicken Sie auf "Server hinzufuegen", um zu beginnen.
         </div>`;
         return;
     }
@@ -145,34 +164,34 @@ function renderServers(servers) {
                         <span class="status-badge status-${s.status}">${getStatusLabel(s.status)}</span>
                     </div>
                     <div class="server-info-item">
-                        <span>Verfügbare Updates:</span>
+                        <span>Verfuegbare Updates:</span>
                         <strong style="color: ${s.pending_updates_count > 0 ? 'var(--orange-primary)' : 'var(--success)'}">
                             ${s.pending_updates_count} Pakete
                         </strong>
                     </div>
                     <div class="server-info-item">
-                        <span>Zuletzt geprüft:</span>
+                        <span>Zuletzt geprueft:</span>
                         <span style="color: var(--text-muted);">${lastCheck}</span>
                     </div>
                 </div>
             </div>
             <div class="server-actions">
                 <button class="btn-gradient" onclick="openTerminal(${s.id}, '${escapeHtml(s.name)}')">
-                    ⚡ Web Shell
+                    Web Shell
                 </button>
                 <button class="btn-secondary" onclick="checkUpdates(${s.id})">
-                    🔍 Prüfen
+                    Pruefen
                 </button>
                 ${s.pending_updates_count > 0 ? `
                     <button class="btn-orange" onclick="runUpdates(${s.id})">
-                        🚀 Updaten (${s.pending_updates_count})
+                        Updaten (${s.pending_updates_count})
                     </button>
                 ` : ''}
                 <button class="btn-secondary" onclick="openLogsModal(${s.id}, '${escapeHtml(s.name)}')">
-                    📜 Logs
+                    Logs
                 </button>
                 <button class="btn-danger" onclick="deleteServer(${s.id})">
-                    🗑️
+                    X
                 </button>
             </div>
         `;
@@ -180,12 +199,11 @@ function renderServers(servers) {
     });
 }
 
-
 function getStatusLabel(status) {
     const map = {
         'ok': 'Bereit / OK',
         'updates_available': 'Updates vorhanden',
-        'checking': 'Prüfe...',
+        'checking': 'Pruefe...',
         'updating': 'Wird aktualisiert...',
         'error': 'Fehler',
         'unreachable': 'Unerreichbar'
@@ -201,17 +219,10 @@ function escapeHtml(str) {
 function openAddServerModal() {
     document.getElementById('serverId').value = '';
     document.getElementById('addServerForm').reset();
-    document.getElementById('serverModalTitle').textContent = 'Neuen Linux Server hinzufügen';
+    document.getElementById('serverModalTitle').textContent = 'Neuen Linux Server hinzufuegen';
     document.getElementById('passwordGroup').classList.remove('hidden');
     document.getElementById('keyGroup').classList.add('hidden');
     document.getElementById('serverModal').classList.remove('hidden');
-}
-
-function closeModal(id) {
-    document.getElementById(id).classList.add('hidden');
-    if (id === 'terminalModal') {
-        closeTerminal();
-    }
 }
 
 async function handleSaveServer(e) {
@@ -246,10 +257,14 @@ async function handleSaveServer(e) {
 }
 
 async function deleteServer(id) {
-    if (!confirm('Möchten Sie diesen Server wirklich löschen?')) return;
+    if (!confirm('Moechten Sie diesen Server wirklich loeschen?')) return;
     try {
         const res = await fetch(`/api/servers/${id}`, { method: 'DELETE', headers: authHeaders() });
         if (res.ok) loadServers();
+    } catch (err) {
+        alert('Fehler beim Loeschen');
+    }
+}
 
 // Updates Triggering
 async function checkUpdates(id) {
@@ -258,13 +273,13 @@ async function checkUpdates(id) {
         const res = await fetch(`/api/updates/${id}/check`, { method: 'POST', headers: authHeaders() });
         const data = await res.json();
         if (data.success) {
-            alert(`Prüfung abgeschlossen. ${data.count} Updates gefunden.`);
+            alert(`Pruefung abgeschlossen. ${data.count} Updates gefunden.`);
         } else {
             alert(`Fehler: ${data.error}`);
         }
         loadServers();
     } catch (err) {
-        alert('Fehler bei Update-Prüfung');
+        alert('Fehler bei Update-Pruefung');
     }
 }
 
@@ -272,72 +287,77 @@ async function checkAllUpdates() {
     try {
         const btn = document.getElementById('btnCheckAll');
         btn.disabled = true;
-        btn.textContent = '⏳ Prüfe alle...';
+        btn.textContent = 'Pruefe alle...';
         
         await fetch('/api/updates/check-all', { method: 'POST', headers: authHeaders() });
         btn.disabled = false;
-        btn.textContent = '🔍 Alle Server prüfen';
+        btn.textContent = 'Alle Server pruefen';
         loadServers();
     } catch (err) {
-        alert('Fehler bei der Prüfung aller Server');
+        alert('Fehler bei der Pruefung aller Server');
     }
 }
 
 async function runUpdates(id) {
-    if (!confirm('Möchten Sie jetzt alle verfügbaren Updates auf diesem System installieren?')) return;
+    if (!confirm('Moechten Sie jetzt alle verfuegbaren Updates auf diesem System installieren?')) return;
     try {
         loadServers();
         const res = await fetch(`/api/updates/${id}/run`, { method: 'POST', headers: authHeaders() });
         const data = await res.json();
         if (data.success) {
-            alert('Updates erfolgreich installiert!');
+            alert('Updates wurden erfolgreich ausgefuehrt!');
         } else {
-            alert(`Fehler bei der Update-Durchführung: ${data.error}`);
+            alert(`Fehler beim Aktualisieren: ${data.error}`);
         }
         loadServers();
     } catch (err) {
-        alert('Fehler beim Ausführen der Updates');
+        alert('Fehler bei Update-Ausfuehrung');
     }
 }
 
 // Logs Modal
-async function openLogsModal(id, serverName) {
-    document.getElementById('logsModalTitle').textContent = `Update-Logs für ${serverName}`;
+async function openLogsModal(serverId, serverName) {
+    document.getElementById('logsModalTitle').textContent = `Update-Protokolle: ${serverName}`;
     const logBox = document.getElementById('logContentBox');
     logBox.textContent = 'Lade Protokolle...';
     document.getElementById('logsModal').classList.remove('hidden');
 
     try {
-        const res = await fetch(`/api/updates/${id}/logs`, { headers: authHeaders() });
+        const res = await fetch(`/api/updates/${serverId}/logs`, { headers: authHeaders() });
         const logs = await res.json();
-
-        if (logs.length === 0) {
-            logBox.textContent = 'Noch keine Protokolle für diesen Server vorhanden.';
+        if (!logs || logs.length === 0) {
+            logBox.textContent = 'Keine Protokolle vorhanden.';
             return;
         }
-
         let html = '';
+        logs.forEach(l => {
+            const time = new Date(l.created_at).toLocaleString('de-DE');
+            html += `=== [${time}] Aktion: ${l.action.toUpperCase()} | Status: ${l.status.toUpperCase()} ===
+`;
+            html += `${l.output || 'Keine Konsolenausgabe'}
 
-// Web Terminal Integration
+`;
+        });
+        logBox.textContent = html;
+    } catch (err) {
+        logBox.textContent = 'Fehler beim Laden der Logs';
+    }
+}
+
+// Web Terminal via WebSocket & Xterm.js
 function openTerminal(serverId, serverName) {
-    document.getElementById('terminalServerTitle').textContent = `Web Shell - ${serverName}`;
+    document.getElementById('terminalServerTitle').textContent = `Web Shell: ${serverName}`;
     document.getElementById('terminalModal').classList.remove('hidden');
 
     const termContainer = document.getElementById('terminalContainer');
     termContainer.innerHTML = '';
 
-    if (currentWs) { currentWs.close(); }
-    if (currentTerm) { currentTerm.dispose(); }
-
-    currentTerm = new Terminal({
+    currentTerm = new window.Terminal({
         cursorBlink: true,
-        fontFamily: 'Courier New, monospace',
-        fontSize: 14,
         theme: {
-            background: '#090611',
-            foreground: '#f3f4f6',
-            cursor: '#f97316',
-            selectionBackground: 'rgba(139, 92, 246, 0.4)'
+            background: '#090d16',
+            foreground: '#f8fafc',
+            cursor: '#f97316'
         }
     });
 
@@ -421,9 +441,9 @@ async function handleChangePassword(e) {
             body: JSON.stringify({ old_password: oldPass, new_password: newPass })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Fehler beim Ändern des Passworts');
+        if (!res.ok) throw new Error(data.detail || 'Fehler beim Aendern des Passworts');
 
-        alert('Passwort erfolgreich geändert!');
+        alert('Passwort erfolgreich geaendert!');
         closeModal('changePwModal');
     } catch (err) {
         errDiv.textContent = err.message;
@@ -431,27 +451,9 @@ async function handleChangePassword(e) {
     }
 }
 
-        logs.forEach(l => {
-            const time = new Date(l.created_at).toLocaleString('de-DE');
-            html += `=== [${time}] Aktion: ${l.action.toUpperCase()} | Status: ${l.status.toUpperCase()} ===\n`;
-            html += `${l.output || 'Keine Konsolenausgabe'}\n\n`;
-        });
-        logBox.textContent = html;
-    } catch (err) {
-        logBox.textContent = 'Fehler beim Laden der Logs';
+function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+    if (id === 'terminalModal') {
+        closeTerminal();
     }
-}
-
-    } catch (err) {
-        alert('Fehler beim Löschen');
-    }
-}
-
-    }
-}
-
-function logout() {
-    authToken = null;
-    localStorage.removeItem('token');
-    showLogin();
 }

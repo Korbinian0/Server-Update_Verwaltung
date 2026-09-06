@@ -35,14 +35,14 @@
             <strong>Standard Zugangsdaten:</strong> admin / admin
         </div>
         <div id="loginError" class="auth-hint hidden" style="background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); color: #ef4444;"></div>
-        <form id="loginForm">
+        <form id="loginForm" autocomplete="off">
             <div class="form-group">
                 <label>Benutzername</label>
-                <input type="text" id="loginUsername" class="form-input" value="admin" required>
+                <input type="text" id="loginUsername" class="form-input" autocomplete="off" required>
             </div>
             <div class="form-group">
                 <label>Passwort</label>
-                <input type="password" id="loginPassword" class="form-input" value="admin" required>
+                <input type="password" id="loginPassword" class="form-input" autocomplete="new-password" required>
             </div>
             <button type="submit" class="btn-gradient" style="width: 100%; justify-content: center; margin-top: 1rem;">
                 Anmelden
@@ -55,7 +55,7 @@
         <!-- Dashboard Header -->
         <div class="dashboard-header">
             <div>
-                <h1 style="font-size: 2rem; background: var(--grad-purple-orange); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                                <h1 style="font-size: 2rem; background: var(--grad-purple-orange); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                     Linux Server Verwaltung
                 </h1>
                 <p style="color: var(--text-muted); margin-top: 0.25rem;">
@@ -96,6 +96,12 @@
                 </div>
             </div>
         </div>
+
+        <!-- Servers Grid -->
+        <div id="serversGrid" class="servers-grid">
+            <!-- Dynamic cards rendered via app.js -->
+        </div>
+    </div>
 
 
     <!-- Add / Edit Server Modal -->
@@ -212,9 +218,3 @@
     <script src="/static/js/app.js"></script>
 </body>
 </html>
-
-        <!-- Servers Grid -->
-        <div id="serversGrid" class="servers-grid">
-            <!-- Dynamic cards rendered via app.js -->
-        </div>
-    </div>
