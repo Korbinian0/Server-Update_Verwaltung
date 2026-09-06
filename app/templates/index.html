@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server & Update Verwaltung</title>
+    <!-- Xterm CSS & JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="logo-container">
+            <div class="logo-icon">🚀</div>
+            <div class="logo-text">ServerManager Pro</div>
+        </div>
+        <div class="user-nav hidden" id="navUser">
+            <button class="btn-secondary" onclick="openChangePwModal()">🔒 Passwort ändern</button>
+            <button class="btn-danger" onclick="logout()">Abmelden</button>
+        </div>
+    </nav>
+
+    <!-- Login Container -->
+    <div id="authSection" class="auth-container">
+        <div class="auth-header">
+            <h2>Willkommen zurück</h2>
+            <p style="color: var(--text-muted);">Server & Update-Verwaltungssystem</p>
+        </div>
+        <div class="auth-hint">
+            <strong>Standard Zugangsdaten:</strong> admin / admin
+        </div>
+        <div id="loginError" class="auth-hint hidden" style="background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); color: #ef4444;"></div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Benutzername</label>
+                <input type="text" id="loginUsername" class="form-input" value="admin" required>
+            </div>
+            <div class="form-group">
+                <label>Passwort</label>
+                <input type="password" id="loginPassword" class="form-input" value="admin" required>
+            </div>
+            <button type="submit" class="btn-gradient" style="width: 100%; justify-content: center; margin-top: 1rem;">
+                Anmelden
+            </button>
+        </form>
+    </div>
+
+    <!-- Dashboard Container -->
+    <div id="dashboardSection" class="dashboard-container hidden">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div>
+                <h1 style="font-size: 2rem; background: var(--grad-purple-orange); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    Linux Server Verwaltung
+                </h1>
+                <p style="color: var(--text-muted); margin-top: 0.25rem;">
+                    Debian, Rocky Linux & Alpine Linux Update & Web-Shell Management
+                </p>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+                <button id="btnCheckAll" class="btn-secondary" onclick="checkAllUpdates()">
+                    🔍 Alle Server prüfen
+                </button>
+                <button class="btn-gradient" onclick="openAddServerModal()">
+                    ➕ Server hinzufügen
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon purple">🖥️</div>
+                <div>
+                    <div class="stat-val" id="statTotalServers">0</div>
+                    <div class="stat-lbl">Registrierte Server</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange">📦</div>
+                <div>
+                    <div class="stat-val" id="statPendingUpdates">0</div>
+                    <div class="stat-lbl">Ausstehende Updates</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">✅</div>
+                <div>
+                    <div class="stat-val" id="statHealthyServers">0</div>
+                    <div class="stat-lbl">Aktuelle System-Betriebe</div>
+                </div>
+            </div>
+        </div>
+
+
+    <!-- Add / Edit Server Modal -->
+    <div id="serverModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="serverModalTitle">Neuen Server hinzufügen</h3>
+                <button class="modal-close" onclick="closeModal('serverModal')">&times;</button>
+            </div>
+            <form id="addServerForm">
+                <input type="hidden" id="serverId">
+                <div class="form-group">
+                    <label>Server Name / Bezeichnung</label>
+                    <input type="text" id="serverName" class="form-input" placeholder="z.B. Webserver Production 01" required>
+                </div>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>IP-Adresse / Hostname</label>
+                        <input type="text" id="serverHost" class="form-input" placeholder="192.168.1.100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>SSH Port</label>
+                        <input type="number" id="serverPort" class="form-input" value="22" required>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Betriebssystem (OS)</label>
+                        <select id="serverOs" class="form-select" required>
+                            <option value="debian">Debian / Ubuntu (apt)</option>
+                            <option value="rocky">Rocky Linux / RHEL (dnf)</option>
+                            <option value="alpine">Alpine Linux (apk)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>SSH Benutzername</label>
+                        <input type="text" id="serverUser" class="form-input" value="root" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Authentifizierungsmethode</label>
+                    <select id="serverAuthType" class="form-select" required>
+                        <option value="password">SSH Passwort</option>
+                        <option value="key">SSH Private Key</option>
+                    </select>
+                </div>
+                <div class="form-group" id="passwordGroup">
+                    <label>SSH Passwort</label>
+                    <input type="password" id="serverPassword" class="form-input" placeholder="Passwort eingeben">
+                </div>
+                <div class="form-group hidden" id="keyGroup">
+                    <label>SSH Private Key (OpenSSH / RSA / Ed25519)</label>
+                    <textarea id="serverKey" class="form-textarea" rows="4" placeholder="-----BEGIN OPENSSH PRIVATE KEY----- ..."></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn-secondary" onclick="closeModal('serverModal')">Abbrechen</button>
+                    <button type="submit" class="btn-gradient">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Web Terminal Modal -->
+    <div id="terminalModal" class="modal-overlay hidden">
+        <div class="modal-content terminal-modal-content">
+            <div class="terminal-header">
+                <h3 id="terminalServerTitle" style="font-size: 1.1rem; color: var(--orange-primary);">Web Shell Terminal</h3>
+                <button class="btn-danger" style="padding: 0.3rem 0.8rem;" onclick="closeModal('terminalModal')">Terminal Schließen</button>
+            </div>
+            <div id="terminalContainer" class="terminal-container"></div>
+        </div>
+    </div>
+
+    <!-- Update Logs Modal -->
+    <div id="logsModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="logsModalTitle">Update-Protokolle</h3>
+                <button class="modal-close" onclick="closeModal('logsModal')">&times;</button>
+            </div>
+            <div id="logContentBox" class="log-box"></div>
+            <div style="text-align: right; margin-top: 1rem;">
+                <button class="btn-secondary" onclick="closeModal('logsModal')">Schließen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePwModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Passwort ändern</h3>
+                <button class="modal-close" onclick="closeModal('changePwModal')">&times;</button>
+            </div>
+            <div id="changePwError" class="auth-hint hidden" style="background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); color: #ef4444;"></div>
+            <form id="changePwForm">
+                <div class="form-group">
+                    <label>Aktuelles Passwort</label>
+                    <input type="password" id="oldPw" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Neues Passwort</label>
+                    <input type="password" id="newPw" class="form-input" required>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn-secondary" onclick="closeModal('changePwModal')">Abbrechen</button>
+                    <button type="submit" class="btn-gradient">Passwort Ändern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- App Script -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
+
+        <!-- Servers Grid -->
+        <div id="serversGrid" class="servers-grid">
+            <!-- Dynamic cards rendered via app.js -->
+        </div>
+    </div>

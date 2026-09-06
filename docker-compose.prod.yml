@@ -1,0 +1,39 @@
+services:
+  db:
+    image: mariadb:10.11
+    container_name: server_mgmt_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-server_management}
+      MYSQL_USER: ${MYSQL_USER:-server_admin}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-secret_pass_123}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword123}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    image: ghcr.io/${GITHUB_REPOSITORY:-yourusername/server-update-verwaltung}:latest
+    container_name: server_mgmt_web
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      MYSQL_HOST: db
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-server_management}
+      MYSQL_USER: ${MYSQL_USER:-server_admin}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-secret_pass_123}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-server_mgmt_super_secret_lila_orange_key_2026}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
