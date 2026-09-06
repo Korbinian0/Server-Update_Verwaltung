@@ -27,7 +27,7 @@ Eine moderne Web-Software in Docker zur Verwaltung von Linux-Servern (Debian, Ro
 ```bash
 # Repository klonen
 git clone https://github.com/Korbinian0/Server-Update_Verwaltung.git
-cd Server-Update-Verwaltung
+cd Server-Update_Verwaltung
 
 # Container starten
 docker compose up -d --build
